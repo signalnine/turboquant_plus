@@ -44,7 +44,27 @@ Store the 8 centroids as half instead of float. Reduces constant memory bandwidt
 
 **Not yet tested.** May help on older hardware (M1) where constant memory bandwidth is more constrained.
 
+## NEW Finding: Decode Ratio Degrades with Context Depth
+
+Server-measured decode speed at different context depths (M5 Max, Qwen3.5-35B-A3B):
+
+| Context | turbo3 decode | q8_0 decode | Ratio |
+|---------|-------------|-----------|-------|
+| ~12 tokens | 75.3 | 85.2 | 0.88x |
+| ~8K tokens | 59.2 | 77.7 | 0.76x |
+
+**The decode gap WIDENS with context.** At 12 tokens it's 12%. At 8K it's 24%. At 40K (Mario's PDF) it could be 40%+.
+
+Root cause: the centroid LUT creates constant cache pressure that compounds as more KV positions are accessed per decode step. q8_0 uses pure ALU (int8 * scale) with zero cache pressure.
+
+This explains:
+- Mario's observation: "synthetic close but WebUI shows bigger difference"
+- The anon tester's 0.36x at 42K context
+- The consistent 0.83x at 32K from Mario's bench
+
+**This is SEPARATE from prefill scaling (flat at 0.99x).** Prefill processes tokens in large batches where memory bandwidth dominates. Decode processes 1 token at a time where per-position compute dominates.
+
 ## Key Finding
-The 16% decode gap is a **fundamental cost of data-dependent indexing** in the flash attention hot path. It's not a bug — it's the compute cost of decompressing 3-bit indices at 82M accesses per decode token. The only way to close it is to avoid the indexing entirely (fused attention) or accept less compression (store values directly).
+The decode gap is a **fundamental cost of data-dependent indexing** in the flash attention hot path, and it SCALES with context depth due to cache pressure. This is not fixable within the current dequant approach — it requires fused compressed attention or a different block format.
 
 For M1 testers: the 0.83x decode ratio is the expected behavior at the current compression level. It's consistent across M1 Max and M5 Max.

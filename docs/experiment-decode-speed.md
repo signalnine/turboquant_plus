@@ -64,7 +64,52 @@ This explains:
 
 **This is SEPARATE from prefill scaling (flat at 0.99x).** Prefill processes tokens in large batches where memory bandwidth dominates. Decode processes 1 token at a time where per-position compute dominates.
 
+## Isolation Test: Bit Extraction vs LUT
+
+Returned the raw index as a float (no LUT, but still data-dependent bit extraction):
+
+| Context | With LUT | Without LUT (index) | q8_0 |
+|---------|----------|-------------------|------|
+| ~12 tokens | 75.3 | 73.6 | 85.2 |
+| ~8K tokens | 59.2 | **70.1** | 77.7 |
+
+**The bit extraction is NOT the bottleneck — it's fast.** The LUT alone costs 18.5% at 8K context (59.2 → 70.1). At short context the LUT is actually faster (compiler optimization). The context-dependent cost comes from constant cache thrashing at high access volumes.
+
+## Regression Against Main
+
+| Metric | Main branch | Experiment branch |
+|--------|------------|-------------------|
+| PPL (8-chunk) | 6.211 | 6.211 |
+| Decode (short ctx) | 75.3 (turbo3) | same dequant |
+| Decode (8K ctx) | 65.8 (earlier measurement) | 61.5 (custom WHT adds overhead) |
+
+**The experiment branch is a net negative for decode.** The custom GGML_OP_TURBO_WHT adds graph node overhead that costs more than the fp16 LUT saves. Main branch is the correct configuration.
+
+## Should This Be Implemented?
+
+**No code changes from this branch should be merged to main.** The investigation produced valuable data but no improvements:
+
+- fp16 LUT: +3% at short context, eaten by custom op overhead at long context
+- Custom GGML_OP_TURBO_WHT: net negative for decode (extra kernel dispatch)
+- All 8 LUT alternatives: worse or marginal vs the original 8-entry float constant
+
+**The 8-entry constant float LUT on main branch is the optimal dequant for the current block format.** Any improvement requires changing the block format or the flash attention kernel architecture (fused compressed attention).
+
 ## Key Finding
-The decode gap is a **fundamental cost of data-dependent indexing** in the flash attention hot path, and it SCALES with context depth due to cache pressure. This is not fixable within the current dequant approach — it requires fused compressed attention or a different block format.
+The decode gap is a **fundamental cost of data-dependent constant cache indexing** that SCALES with context depth. At short context (~12 tokens) turbo3 is 0.88x q8_0. At 8K context it's 0.76x. At 40K+ it could be 0.6x or worse.
+
+The only paths that would close this gap:
+1. **Fused compressed attention** — compute Q·K from indices without dequant (complex, custom FA kernel)
+2. **Store centroid values directly** — no LUT (trades compression for speed, defeats purpose)
+3. **Block format redesign** — pack indices for faster extraction (format-breaking change)
+
+None of these are simple. The decode gap is an inherent tradeoff of 3-bit compression on current GPU architectures.
+
+## Recommendation for Users
+
+- **Short context (<4K):** turbo3 decode is ~88% of q8_0 — barely noticeable
+- **Medium context (4K-16K):** ~76-84% of q8_0 — noticeable but usable
+- **Long context (32K+):** <70% of q8_0 — use q8_0 for decode-sensitive workloads
+- **Memory-constrained:** turbo3 still wins on fitting longer context in available RAM
 
 For M1 testers: the 0.83x decode ratio is the expected behavior at the current compression level. It's consistent across M1 Max and M5 Max.

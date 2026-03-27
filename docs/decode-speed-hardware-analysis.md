@@ -200,3 +200,31 @@ Threads 0-3 within each 8-thread block compute mag[i]×norm. All threads use `si
 
 ### Total: 13 approaches tested
 The 4-mag constant LUT at 15.1 tok/s (0.69× q8_0) is the definitive dequant-level ceiling on Apple8 hardware. Every alternative — fewer constant addresses, zero constant addresses, branchless ALU, cross-lane shuffle, inline FA blocks — is equal or worse.
+
+## Extended Experiments (approaches 14, 2026-03-27)
+
+| # | Approach | M2 8K tok/s | vs 4-mag | Key finding |
+|---|----------|-------------|---------|-------------|
+| 14 | Fused block dot (per-centroid Q accum) | 8.1 | -46% | 64 float comparisons per block — worst result of all |
+
+### Fused block dot details
+Flipped computation: instead of per-element centroid lookup, iterate over 4 centroid values and accumulate matching Q elements. Uses `float(mi == c)` as a branchless mask. But 4 centroids × 4 elements × 4 comparisons = 64 float comparison operations per dequant call. Each comparison likely compiles to a branch on Apple8, making this the most expensive approach tested.
+
+### Final tally: 14 approaches tested
+
+| Rank | Approach | M2 8K | vs Ceiling | Category |
+|------|----------|-------|-----------|----------|
+| 1 | 4-mag LUT | 15.1 | 62% | 4 constant reads |
+| 2 | simd_shuffle | 14.7 | 60% | Cross-lane transfer |
+| 3 | Batched extract (8-LUT) | 13.7 | 56% | 8 constant reads |
+| 4 | Inline FA block | 13.5 | 55% | Inlined dequant |
+| 5 | Deferred norm | 12.9 | 53% | Loses ILP |
+| 6 | 2-pair half2 | 12.0 | 49% | 2 reads + ternary |
+| 7 | Select chain | 11.9 | 49% | Pure branches |
+| 8 | Bit-arithmetic | 11.6 | 47% | Pure ALU |
+| 9 | FMA branchless | 11.4 | 47% | fma() chain |
+| 10 | Main (8-LUT) | 10.95 | 45% | Baseline |
+| 11 | Named-reg ternary | 10.3 | 42% | Registers + branches |
+| 12 | Non-vec FA | 10.2 | 42% | Wrong kernel |
+| 13 | Fused block dot | 8.1 | 33% | 64 comparisons |
+| — | Ceiling (no dequant) | 24.5 | 100% | Zero overhead |

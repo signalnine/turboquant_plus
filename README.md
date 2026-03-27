@@ -61,7 +61,9 @@ Compresses transformer KV cache **4.6x** using PolarQuant + Walsh-Hadamard rotat
 | 24K (70-page PDF) | 53.3 | 68.2 | 0.78x |
 | 32K | 57.7 | 62.0 | **0.93x** |
 
-**Sparse V dequant** skips V dequantization for positions where softmax attention weight < 1e-6. At long context, 90%+ of attention weights are negligible — this saves ~half the total dequant cost. **+22.8% decode at 32K** vs previous turbo3, pushing the ratio from 0.76x to 0.93x. Zero quality loss (PPL 6.176 vs 6.211 without sparse V). Benefit scales with context length — the longer the context, the bigger the win.
+**Sparse V dequant** skips V dequantization for positions where softmax attention weight < 1e-6. At long context, 90%+ of attention weights are negligible — this saves ~half the total dequant cost. **+22.8% decode at 32K** vs previous turbo3, pushing the ratio from 0.76x to 0.93x. Zero quality loss (PPL 6.176 vs 6.211 without sparse V). Benefit scales with context length — the longer the context, the bigger the win. This is a 3-line kernel change.
+
+Sparse V is not TurboQuant-specific: on q8_0 KV cache it yields a +5% decode speedup with identical PPL and NIAH, confirming this is a general attention-aware optimization rather than a compression-specific trick. See the [full paper](docs/papers/sparse-v-dequant.md).
 
 On M2/M1 (pre-M5), the auto-detected 4-mag LUT gives an additional +38-45% decode improvement at long context, and is additive with sparse V. See [Decode Speed Hardware Analysis](docs/decode-speed-hardware-analysis.md) for the full 14-approach experiment log, and [Context Scaling Deep Dive](docs/context-scaling-deep-dive.md) for the M5 Max optimization journey.
 

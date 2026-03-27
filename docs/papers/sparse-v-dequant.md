@@ -10,7 +10,7 @@ GitHub: [@TheTom](https://github.com/TheTom)
 
 Quantized KV cache compression (e.g., TurboQuant, NVFP4) reduces memory consumption during LLM inference but introduces a dequantization bottleneck during autoregressive decoding. After exhaustively testing 14 alternative dequant implementations (register arrays, bit-arithmetic, SIMD shuffles, fused block operations), we found that no instruction-level optimization beats the hardware's constant memory LUT on Apple Silicon. The bottleneck is not *how* values are dequantized, but *how many*.
 
-We observe that in flash attention kernels, softmax attention weights are computed *before* value accumulation, and that at long context lengths, 90%+ of these weights are negligible. We propose **sparse V dequantization**: skipping value dequantization for positions where the attention weight falls below a threshold. Rather than making N dequant operations faster, we eliminate $(1-p) \times N$ of them entirely. On Apple M5 Max with a 35B MoE model, this yields **+22.8% decode throughput at 32K context** with zero perplexity loss, and unexpectedly *improved* needle-in-a-haystack retrieval (9/9 vs 7/9 baseline), suggesting that dequantizing negligible positions introduces noise rather than useful signal. The technique requires 3 lines of code, is orthogonal to existing dequant optimizations, general to any quantized KV cache scheme, and its benefit scales with context length.
+We observe that in flash attention kernels, softmax attention weights are computed *before* value accumulation, and that at long context lengths, 90%+ of these weights are negligible. We propose **sparse V dequantization**: skipping value dequantization for positions where the attention weight falls below a threshold. Rather than making N dequant operations faster, we eliminate $(1-p) \times N$ of them entirely. On Apple M5 Max with a 35B MoE model, this yields **+22.8% decode throughput at 32K context** with zero perplexity loss, and unexpectedly *improved* needle-in-a-haystack retrieval (9/9 vs 7/9 baseline), suggesting that dequantizing negligible positions introduces noise rather than useful signal. The technique requires 3 lines of code and is orthogonal to existing dequant optimizations. Because it operates on the attention distribution rather than the dequantization mechanism itself, it is general to any quantized KV cache scheme — validated on both TurboQuant (3.5-bit) and q8\_0 (8-bit) — and its benefit scales with context length.
 
 ---
 
@@ -22,7 +22,7 @@ On Apple Silicon, TurboQuant's dequant uses a centroid lookup table (LUT) in Met
 
 This gap motivated an exhaustive search: 14 alternative dequant implementations were tested on M2 Pro and M5 Max hardware, including register arrays, bit-arithmetic, FMA branchless computation, simd_shuffle cross-lane transfer, and fused block dot products. None beat the baseline constant memory LUT on Apple Silicon (see Section 5).
 
-The failure of all 14 approaches revealed a fundamental constraint: on Apple Silicon, the constant memory LUT is already at the hardware floor. No amount of cleverness in *how* you dequantize beats 4 divergent constant reads. The only remaining lever is reducing how many positions require dequantization at all.
+The failure of all 14 approaches revealed a fundamental constraint: on Apple Silicon, the constant memory LUT is already at the hardware floor. No amount of cleverness in *how* you dequantize beats 4 divergent constant reads. The only remaining lever is reducing how many positions require dequantization at all — shifting the optimization target from instruction-level efficiency to attention-gated operation elimination.
 
 We then observed that the dequant cost splits roughly 50/50 between K (key) and V (value) paths. The key insight: in flash attention, softmax weights are computed from K *before* V is accessed. At long context, most attention weights are negligible. Skipping V dequant for these positions eliminates approximately half the total dequant cost at long context, with no measurable quality impact. This reframes the optimization problem: instead of making each operation cheaper (bounded by hardware floor), eliminate operations entirely (unbounded improvement as attention sparsity increases with context length).
 
@@ -209,11 +209,13 @@ The 14 failed approaches all tried to make individual dequant operations cheaper
 
 At 32K context, p ≈ 0.9 (90% of positions skipped). At 128K, p would be even higher. The technique becomes *more* effective at exactly the context lengths where the dequant bottleneck is worst.
 
+More broadly, sparse V is an instance of *attention-aware computation*: using the model's own sparsity pattern — computed as a byproduct of normal inference — to gate downstream kernel work. The attention weights are already available before V accumulation begins; sparse V simply acts on information the kernel already has.
+
 ---
 
 ## 7. Generality
 
-Sparse V dequantization is not specific to TurboQuant. It applies to any quantized KV cache scheme where:
+Sparse V dequantization is not specific to TurboQuant. Because it gates computation based on the attention distribution — not the specifics of any dequantization implementation — it applies to any quantized KV cache scheme where:
 
 1. Flash attention is used (softmax computed before V accumulation)
 2. V is stored in a quantized format requiring dequantization
@@ -290,7 +292,7 @@ The core insight is simple: making N dequant operations faster is bounded by har
 
 The technique exploits the natural sparsity of attention weights — a property that becomes more pronounced exactly when the dequant bottleneck is most severe. The approach is general to any quantized KV cache scheme, requires no model changes, no retraining, and no calibration data, and is orthogonal to existing dequant and compression optimizations. It is, we believe, the first instance of a broader class of attention-aware kernel optimizations that use the attention distribution to gate downstream computation.
 
-This suggests that a significant fraction of attention computation in long-context inference is redundant and can be gated without loss of quality.
+More broadly, these results suggest that a significant fraction of value-side attention computation in long-context inference is redundant, and that the attention distribution itself provides a reliable, zero-cost signal for gating it.
 
 ---
 

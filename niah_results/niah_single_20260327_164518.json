@@ -1,0 +1,404 @@
+{
+  "model": "Qwen_Qwen3.5-35B-A3B-Q4_K_M",
+  "mode": "single",
+  "seed": 42,
+  "timestamp": "2026-03-27T16:45:18.092875+00:00",
+  "results": [
+    {
+      "mode": "single",
+      "context_length": 262144,
+      "cache_type": "q8_0",
+      "needle_depth_pct": 0.0,
+      "needle_count": 1,
+      "accuracy_pct": 100.0,
+      "passed": true,
+      "trials": [
+        {
+          "expected": "3895503",
+          "response": "3895503",
+          "found": true,
+          "needle_depth_pct": 0.0,
+          "context_length": 262144
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "context_length": 262144,
+      "cache_type": "q8_0",
+      "needle_depth_pct": 0.1,
+      "needle_count": 1,
+      "accuracy_pct": 100.0,
+      "passed": true,
+      "trials": [
+        {
+          "expected": "7374492",
+          "response": "7374492",
+          "found": true,
+          "needle_depth_pct": 0.1,
+          "context_length": 262144
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "context_length": 262144,
+      "cache_type": "q8_0",
+      "needle_depth_pct": 0.2,
+      "needle_count": 1,
+      "accuracy_pct": 100.0,
+      "passed": true,
+      "trials": [
+        {
+          "expected": "3928470",
+          "response": "3928470",
+          "found": true,
+          "needle_depth_pct": 0.2,
+          "context_length": 262144
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "context_length": 262144,
+      "cache_type": "q8_0",
+      "needle_depth_pct": 0.3,
+      "needle_count": 1,
+      "accuracy_pct": 100.0,
+      "passed": true,
+      "trials": [
+        {
+          "expected": "6475650",
+          "response": "6475650",
+          "found": true,
+          "needle_depth_pct": 0.3,
+          "context_length": 262144
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "context_length": 262144,
+      "cache_type": "q8_0",
+      "needle_depth_pct": 0.4,
+      "needle_count": 1,
+      "accuracy_pct": 100.0,
+      "passed": true,
+      "trials": [
+        {
+          "expected": "4290466",
+          "response": "4290466",
+          "found": true,
+          "needle_depth_pct": 0.4,
+          "context_length": 262144
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "context_length": 262144,
+      "cache_type": "q8_0",
+      "needle_depth_pct": 0.5,
+      "needle_count": 1,
+      "accuracy_pct": 100.0,
+      "passed": true,
+      "trials": [
+        {
+          "expected": "6775630",
+          "response": "6775630",
+          "found": true,
+          "needle_depth_pct": 0.5,
+          "context_length": 262144
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "context_length": 262144,
+      "cache_type": "q8_0",
+      "needle_depth_pct": 0.6,
+      "needle_count": 1,
+      "accuracy_pct": 0.0,
+      "passed": false,
+      "trials": [
+        {
+          "expected": "2742292",
+          "response": "",
+          "found": false,
+          "needle_depth_pct": 0.6,
+          "context_length": 262144
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "context_length": 262144,
+      "cache_type": "q8_0",
+      "needle_depth_pct": 0.7,
+      "needle_count": 1,
+      "accuracy_pct": 100.0,
+      "passed": true,
+      "trials": [
+        {
+          "expected": "6944312",
+          "response": "6944312",
+          "found": true,
+          "needle_depth_pct": 0.7,
+          "context_length": 262144
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "context_length": 262144,
+      "cache_type": "q8_0",
+      "needle_depth_pct": 0.8,
+      "needle_count": 1,
+      "accuracy_pct": 100.0,
+      "passed": true,
+      "trials": [
+        {
+          "expected": "2101711",
+          "response": "2101711",
+          "found": true,
+          "needle_depth_pct": 0.8,
+          "context_length": 262144
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "context_length": 262144,
+      "cache_type": "q8_0",
+      "needle_depth_pct": 0.9,
+      "needle_count": 1,
+      "accuracy_pct": 100.0,
+      "passed": true,
+      "trials": [
+        {
+          "expected": "4066483",
+          "response": "4066483",
+          "found": true,
+          "needle_depth_pct": 0.9,
+          "context_length": 262144
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "context_length": 262144,
+      "cache_type": "q8_0",
+      "needle_depth_pct": 1.0,
+      "needle_count": 1,
+      "accuracy_pct": 100.0,
+      "passed": true,
+      "trials": [
+        {
+          "expected": "9422622",
+          "response": "9422622",
+          "found": true,
+          "needle_depth_pct": 1.0,
+          "context_length": 262144
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "context_length": 262144,
+      "cache_type": "turbo3",
+      "needle_depth_pct": 0.0,
+      "needle_count": 1,
+      "accuracy_pct": 100.0,
+      "passed": true,
+      "trials": [
+        {
+          "expected": "3895503",
+          "response": "3895503",
+          "found": true,
+          "needle_depth_pct": 0.0,
+          "context_length": 262144
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "context_length": 262144,
+      "cache_type": "turbo3",
+      "needle_depth_pct": 0.1,
+      "needle_count": 1,
+      "accuracy_pct": 100.0,
+      "passed": true,
+      "trials": [
+        {
+          "expected": "7374492",
+          "response": "7374492",
+          "found": true,
+          "needle_depth_pct": 0.1,
+          "context_length": 262144
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "context_length": 262144,
+      "cache_type": "turbo3",
+      "needle_depth_pct": 0.2,
+      "needle_count": 1,
+      "accuracy_pct": 100.0,
+      "passed": true,
+      "trials": [
+        {
+          "expected": "3928470",
+          "response": "3928470",
+          "found": true,
+          "needle_depth_pct": 0.2,
+          "context_length": 262144
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "context_length": 262144,
+      "cache_type": "turbo3",
+      "needle_depth_pct": 0.3,
+      "needle_count": 1,
+      "accuracy_pct": 100.0,
+      "passed": true,
+      "trials": [
+        {
+          "expected": "6475650",
+          "response": "6475650",
+          "found": true,
+          "needle_depth_pct": 0.3,
+          "context_length": 262144
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "context_length": 262144,
+      "cache_type": "turbo3",
+      "needle_depth_pct": 0.4,
+      "needle_count": 1,
+      "accuracy_pct": 100.0,
+      "passed": true,
+      "trials": [
+        {
+          "expected": "4290466",
+          "response": "4290466",
+          "found": true,
+          "needle_depth_pct": 0.4,
+          "context_length": 262144
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "context_length": 262144,
+      "cache_type": "turbo3",
+      "needle_depth_pct": 0.5,
+      "needle_count": 1,
+      "accuracy_pct": 100.0,
+      "passed": true,
+      "trials": [
+        {
+          "expected": "6775630",
+          "response": "6775630",
+          "found": true,
+          "needle_depth_pct": 0.5,
+          "context_length": 262144
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "context_length": 262144,
+      "cache_type": "turbo3",
+      "needle_depth_pct": 0.6,
+      "needle_count": 1,
+      "accuracy_pct": 100.0,
+      "passed": true,
+      "trials": [
+        {
+          "expected": "2742292",
+          "response": "2742292",
+          "found": true,
+          "needle_depth_pct": 0.6,
+          "context_length": 262144
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "context_length": 262144,
+      "cache_type": "turbo3",
+      "needle_depth_pct": 0.7,
+      "needle_count": 1,
+      "accuracy_pct": 100.0,
+      "passed": true,
+      "trials": [
+        {
+          "expected": "6944312",
+          "response": "6944312",
+          "found": true,
+          "needle_depth_pct": 0.7,
+          "context_length": 262144
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "context_length": 262144,
+      "cache_type": "turbo3",
+      "needle_depth_pct": 0.8,
+      "needle_count": 1,
+      "accuracy_pct": 100.0,
+      "passed": true,
+      "trials": [
+        {
+          "expected": "2101711",
+          "response": "2101711",
+          "found": true,
+          "needle_depth_pct": 0.8,
+          "context_length": 262144
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "context_length": 262144,
+      "cache_type": "turbo3",
+      "needle_depth_pct": 0.9,
+      "needle_count": 1,
+      "accuracy_pct": 100.0,
+      "passed": true,
+      "trials": [
+        {
+          "expected": "4066483",
+          "response": "4066483",
+          "found": true,
+          "needle_depth_pct": 0.9,
+          "context_length": 262144
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "context_length": 262144,
+      "cache_type": "turbo3",
+      "needle_depth_pct": 1.0,
+      "needle_count": 1,
+      "accuracy_pct": 100.0,
+      "passed": true,
+      "trials": [
+        {
+          "expected": "9422622",
+          "response": "9422622",
+          "found": true,
+          "needle_depth_pct": 1.0,
+          "context_length": 262144
+        }
+      ]
+    }
+  ]
+}

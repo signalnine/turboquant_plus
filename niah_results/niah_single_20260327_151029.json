@@ -1,0 +1,44 @@
+{
+  "model": "Qwen_Qwen3.5-35B-A3B-Q4_K_M",
+  "mode": "single",
+  "seed": 42,
+  "timestamp": "2026-03-27T15:10:29.893613+00:00",
+  "results": [
+    {
+      "mode": "single",
+      "context_length": 4096,
+      "cache_type": "turbo3",
+      "needle_depth_pct": 0.11,
+      "needle_count": 1,
+      "accuracy_pct": 100.0,
+      "passed": true,
+      "trials": [
+        {
+          "expected": "5650947",
+          "response": "5650947",
+          "found": true,
+          "needle_depth_pct": 0.11,
+          "context_length": 4096
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "context_length": 32768,
+      "cache_type": "turbo3",
+      "needle_depth_pct": 0.11,
+      "needle_count": 1,
+      "accuracy_pct": 100.0,
+      "passed": true,
+      "trials": [
+        {
+          "expected": "4276998",
+          "response": "4276998",
+          "found": true,
+          "needle_depth_pct": 0.11,
+          "context_length": 32768
+        }
+      ]
+    }
+  ]
+}

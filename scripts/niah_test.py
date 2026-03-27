@@ -668,6 +668,7 @@ def start_server(
     verbose: bool = False,
     server_timeout: int = 120,
     server_bin_override: Optional[Path] = None,
+    extra_server_args: list[str] | None = None,
 ) -> subprocess.Popen:
     """Start llama-server and wait until it's healthy."""
     global _active_server, _server_stderr_file
@@ -691,6 +692,9 @@ def start_server(
         "-np", "1",
         "--jinja",
     ]
+
+    if extra_server_args:
+        cmd.extend(extra_server_args)
 
     if verbose:
         print(f"  [CMD] {' '.join(cmd)}")
@@ -804,7 +808,8 @@ def _query_server(
         "temperature": 0,
         "seed": SEED,
         # Qwen3.5 uses thinking mode — needs enough tokens to finish thinking + answer.
-        "max_tokens": 2048,
+        # At long contexts the model thinks harder; 8192 prevents think-truncation.
+        "max_tokens": 8192,
     }).encode()
 
     headers = {"Content-Type": "application/json"}
@@ -901,13 +906,14 @@ def run_single_mode(
     for cache_type in cache_types:
         for ctx_len in context_lengths:
             # Start server once per (cache_type, ctx_len) — reuse for all depths
-            server_ctx = ctx_len + 4096  # headroom for query + response
+            server_ctx = ctx_len + 12288  # headroom for query + response (12K covers max_tokens=8192 + prompt overhead)
             actual_port = _find_free_port(port)
             print(f"\n  Starting server: cache={cache_type}, ctx={server_ctx}")
             proc = start_server(
                 llama_dir, model_path, cache_type, server_ctx, actual_port,
                 args.verbose, server_timeout=args.server_timeout,
                 server_bin_override=server_bin,
+                extra_server_args=args.extra_server_args or [],
             )
 
             try:
@@ -997,7 +1003,7 @@ def run_multi_key_mode(
             target_chars = int(ctx_len * args.chars_per_token)
             haystack = generate_haystack_multi_key(real_needle, distractors, target_chars, rng)
 
-            server_ctx = ctx_len + 4096
+            server_ctx = ctx_len + 12288  # headroom for query + response (12K covers max_tokens=8192 + prompt overhead)
             actual_port = _find_free_port(port)
             ctx_label = f"{ctx_len // 1024}K" if ctx_len >= 1024 else str(ctx_len)
             print(f"\n  [{config_num}/{total}] cache={cache_type} ctx={ctx_label}", end=" ", flush=True)
@@ -1006,6 +1012,7 @@ def run_multi_key_mode(
                 llama_dir, model_path, cache_type, server_ctx, actual_port,
                 args.verbose, server_timeout=args.server_timeout,
                 server_bin_override=server_bin,
+                extra_server_args=args.extra_server_args or [],
             )
 
             try:
@@ -1068,13 +1075,14 @@ def run_multi_value_mode(
 
     for cache_type in cache_types:
         for ctx_len in context_lengths:
-            server_ctx = ctx_len + 4096
+            server_ctx = ctx_len + 12288  # headroom for query + response (12K covers max_tokens=8192 + prompt overhead)
             actual_port = _find_free_port(port)
             print(f"\n  Starting server: cache={cache_type}, ctx={server_ctx}")
             proc = start_server(
                 llama_dir, model_path, cache_type, server_ctx, actual_port,
                 args.verbose, server_timeout=args.server_timeout,
                 server_bin_override=server_bin,
+                extra_server_args=args.extra_server_args or [],
             )
 
             try:
@@ -1531,6 +1539,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         type=float,
         default=4.0,
         help="Approximate characters per token for haystack sizing (default: %(default)s).",
+    )
+    parser.add_argument(
+        "--server-args",
+        dest="extra_server_args",
+        nargs=argparse.REMAINDER,
+        default=[],
+        help="Extra arguments passed verbatim to llama-server (e.g. --override-kv key=val).",
     )
 
     return parser.parse_args(argv)

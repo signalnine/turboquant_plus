@@ -1,0 +1,26 @@
+{
+  "model": "Qwen_Qwen3.5-35B-A3B-Q4_K_M",
+  "mode": "single",
+  "seed": 42,
+  "timestamp": "2026-03-27T15:09:29.654138+00:00",
+  "results": [
+    {
+      "mode": "single",
+      "context_length": 4096,
+      "cache_type": "turbo3",
+      "needle_depth_pct": 0.03,
+      "needle_count": 1,
+      "accuracy_pct": 100.0,
+      "passed": true,
+      "trials": [
+        {
+          "expected": "3763392",
+          "response": "3763392",
+          "found": true,
+          "needle_depth_pct": 0.03,
+          "context_length": 4096
+        }
+      ]
+    }
+  ]
+}

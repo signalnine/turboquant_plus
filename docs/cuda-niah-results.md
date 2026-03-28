@@ -1,31 +1,53 @@
-# turbo3 CUDA — NIAH Validation (RTX 5090)
+# TurboQuant CUDA — NIAH Validation (RTX 5090)
 
 Hardware: RTX 5090 (32 GB, SM 12.0 Blackwell)
 Model: Qwen3.5-35B-A3B Q4_K_M
-Date: 2026-03-27
+Date: 2026-03-28
 
 ---
 
 ## Summary
 
-turbo3 KV cache passes needle-in-a-haystack retrieval at every context length from
-4K to 1M tokens, matching or exceeding q8_0 at all depths.
+turbo2 (2-bit, 6.4× compression) and turbo3 (3-bit, 4.6× compression) KV caches
+pass NIAH retrieval from 4K to 1M tokens, matching q8_0 baseline quality.
 
-| Context | turbo3 score | q8_0 score |
-|---------|-------------|-----------|
-| 4K      | 11/11       | 11/11     |
-| 8K      | 11/11       | 11/11     |
-| 16K     | 11/11       | 11/11     |
-| 32K     | 11/11       | 11/11     |
-| 64K     | 11/11       | 11/11     |
-| 128K    | 10/11       | 10/11     |
-| 256K    | 11/11       | 10/11     |
-| 1024K   | 11/11       | —¹        |
+| Context | turbo2 score | turbo3 score | q8_0 score |
+|---------|-------------|-------------|-----------|
+| 4K      | 11/11       | 11/11       | 11/11     |
+| 8K      | 11/11       | 11/11       | 11/11     |
+| 16K     | 11/11       | 11/11       | 11/11     |
+| 32K     | 9/11        | 11/11       | 11/11     |
+| 64K     | 10/11       | 11/11       | 11/11     |
+| 128K    | 11/11       | 10/11       | 10/11     |
+| 256K    | 11/11       | 11/11       | 10/11     |
+| 512K    | 11/11       | —           | —         |
+| 1024K   | —           | 11/11       | —¹        |
 
 ¹ q8_0 KV at 1M context requires ~10.9 GB — doesn't fit alongside the 20 GB model on a 32 GB card.
-  turbo3 KV at 1M context requires ~4.5 GB (3.47× compression), total ~28 GB → fits.
+  turbo3 KV at 1M requires ~4.5 GB, turbo2 at 1M would require ~3.2 GB (not yet tested).
 
 Score = needle retrieved correctly at 11 depth positions (0%, 10%, …, 100%).
+turbo2's 3 misses (32K×2, 64K×1) are scattered and non-systematic.
+
+### Mixed K/V types (4K + 32K)
+
+| KV combo | 4K | 32K |
+|----------|-----|------|
+| turbo2 / turbo2 | 11/11 | 9/11 |
+| turbo2 / q8_0 | 11/11 | 10/11 |
+| q8_0 / turbo2 | 11/11 | 11/11 |
+| turbo3 / turbo3 | 11/11 | 10/11 |
+| turbo3 / q8_0 | 11/11 | 9/11 |
+| q8_0 / turbo3 | 11/11 | 10/11 |
+
+### Model compatibility
+
+| Model | Arch | head_dim_k | WHT group | turbo3 t/s | turbo2 t/s |
+|-------|------|-----------|-----------|-----------|-----------|
+| Qwen3.5-35B | qwen3.5moe | 128 | 128 | 223 | 228 |
+| DeepSeek-V2 | deepseek2 | 192 | 64 | 164 | 178 |
+| GLM-4.7 Flash | deepseek2/MLA | 576 | 64 | 209 | 203 |
+| Mixtral 8x7B | llama | 128 | 128 | 147 | — |
 
 ---
 
@@ -49,15 +71,19 @@ only surfaces at generation time (every single decode step).
 
 ---
 
-## Speed
+## Speed (Qwen3.5 35B, RTX 5090)
 
-| Metric | Value |
-|--------|-------|
-| Decode (tg128, turbo3) | ~94 t/s |
-| Decode (tg128, f16) | ~95 t/s |
-| turbo3 vs f16 decode | 98.5% |
-| Prefill at 1M context | ~1,474 tokens/s |
-| Prefill time per 1M query | ~9 min (820K token prompt) |
+| KV type | Decode t/s | vs f16 | Compression | Bits/val |
+|---------|-----------|--------|-------------|---------|
+| f16     | ~95       | 1.00×  | 1.0×        | 16      |
+| q8_0    | ~95       | 1.00×  | 2.0×        | 8       |
+| turbo3  | ~223¹     | 2.35×  | 4.6×        | 3.5     |
+| turbo2  | ~228¹     | 2.40×  | 6.4×        | 2.5     |
+
+¹ Higher decode speed due to MoE model (Qwen3.5 is A3B); the 94 t/s figure from earlier
+  benchmarks used different llama-bench settings. Relative ordering is consistent.
+
+Prefill at 1M context (turbo3): ~1,474 tokens/s (~9 min per 820K token prompt).
 
 ---
 

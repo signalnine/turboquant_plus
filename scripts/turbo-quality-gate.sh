@@ -2,6 +2,9 @@
 # TurboQuant quality + speed gate — run BEFORE pushing any changes
 # Checks: (1) perplexity within 5% of q8_0, (2) context scaling ratio > 0.95
 #
+# Also run turbo-server-smoke.sh for server-specific paths (prompt cache,
+# multi-turn, slot reuse) that llama-cli --single-turn tests don't exercise.
+#
 # Usage: bash scripts/turbo-quality-gate.sh
 # Exit 0 = PASS, Exit 1 = FAIL
 

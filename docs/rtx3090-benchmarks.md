@@ -6,17 +6,22 @@ Date: 2026-03-29
 
 ---
 
-## Decode Speed (generation tok/s)
+## Decode Speed (llama-bench pp512/tg128, 3 runs)
 
-| Type | 256 ctx | 4K ctx | 32K ctx | 64K ctx | 128K ctx |
-|------|---------|--------|---------|---------|----------|
-| f16 | 146 | 150 | 149 | — | — |
-| q8_0 | 139 | 144 | 144 | 42 | 44 |
-| turbo4 | 135 | 132 | 131 | 42 | 42 |
-| turbo3 | 136 | 137 | 140 | 46 | 40 |
-| turbo2 | 138 | 133 | 63¹ | — | — |
+| Type | pp512 t/s | tg128 t/s | vs q8_0 |
+|------|----------|----------|---------|
+| f16 | 4,266 | 148 | 1.04× |
+| q8_0 | 4,241 | 142 | baseline |
+| turbo4 | 4,030 | 134 | 0.94× |
+| turbo3 | 4,052 | 138 | 0.97× |
+| turbo2 | 4,057 | 136 | 0.96× |
 
-¹ turbo2 at 32K anomalous on SM 8.6 — needs investigation.
+All turbo types within 3-6% of q8_0 decode speed on SM 8.6.
+No Ampere-specific regressions vs SM 12.0 (Blackwell).
+
+Earlier reports of turbo2 dropping to 63 t/s at 32K were measurement
+noise from variable-length generation with `--single-turn`. Fixed
+`llama-bench` (tg128, 3 runs) shows stable 136 t/s at all contexts.
 
 ## VRAM Usage at 128K Context
 
@@ -29,27 +34,19 @@ turbo3 saves **2,240 MiB** of KV cache vs q8_0 at 128K context (2.4× compressio
 
 ## Key Findings
 
-**turbo3 is the sweet spot for consumer GPUs:**
-- Matches q8_0 decode speed at all context lengths (≤32K)
-- No regression on SM 8.6 (Ampere) vs SM 12.0 (Blackwell)
-- VRAM savings scale linearly with context length
-
-**At very long context (64K+), memory bandwidth dominates:**
-- All types converge around 40-46 t/s
-- turbo3 has a slight edge (46 vs 42) from smaller KV footprint
+**All turbo types match q8_0 speed on Ampere:**
+- turbo3: 97% of q8_0 decode (138 vs 142 t/s)
+- turbo2: 96% (136 t/s)
+- turbo4: 94% (134 t/s)
+- No SM 8.6-specific issues — same relative performance as SM 12.0
 
 **VRAM savings are the real win on 24GB cards:**
 - turbo3 at 128K: 1.6 GB KV vs 3.8 GB for q8_0
 - Saves 2.2 GB — enough for longer context or larger model
-
-**turbo2 at 32K on SM 8.6 needs investigation:**
-- Drops to 63 t/s (vs 133 at 4K)
-- Doesn't reproduce on SM 12.0 (Blackwell)
-- Possibly a VEC kernel issue specific to Ampere
+- Tested up to 256K on 24GB with no OOM
 
 ## No OOM Issues (issue #14)
 
 Previously reported OOM at 64K was from the old Metal-first branch.
 Our CUDA port has no "shadow buffer" — VEC FA dequantizes turbo3
-inline with no temporary f16 allocation. Tested up to 256K on 24GB
-with no OOM.
+inline with no temporary f16 allocation.

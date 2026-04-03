@@ -27,16 +27,60 @@ class PolarQuant:
         pq = PolarQuant(d=128, bit_width=2, seed=42)
         indices, norms = pq.quantize(x)       # x: (d,) or (batch, d)
         x_hat = pq.dequantize(indices, norms)  # reconstructed
+
+    Rotation methods:
+        'dense'    — Haar QR rotation, O(d²), exact (default)
+        'wht'      — Walsh-Hadamard + random signs, O(d log d), power-of-2 only
+        'vilenkin' — Vilenkin-Hartley + random signs, O(d log d), any dimension
     """
 
-    def __init__(self, d: int, bit_width: int, seed: int = 42):
+    def __init__(self, d: int, bit_width: int, seed: int = 42, rotation_method: str = 'dense'):
         self.d = d
         self.bit_width = bit_width
         self.n_centroids = 1 << bit_width
+        self.rotation_method = rotation_method
 
         rng = np.random.default_rng(seed)
-        self.rotation = random_rotation_dense(d, rng)
+
+        if rotation_method == 'dense':
+            self.rotation = random_rotation_dense(d, rng)
+        elif rotation_method == 'wht':
+            from turboquant.rotation import random_rotation_fast
+            self.signs1, self.signs2, self.padded_d = random_rotation_fast(d, rng)
+            self.rotation = None
+        elif rotation_method == 'vilenkin':
+            from turboquant.vilenkin import random_vilenkin_rotation
+            self.signs1, self.signs2 = random_vilenkin_rotation(d, rng)
+            self.rotation = None
+        else:
+            raise ValueError(f"Unknown rotation_method: {rotation_method!r}. "
+                             f"Use 'dense', 'wht', or 'vilenkin'.")
+
         self.centroids = optimal_centroids(bit_width, d)
+
+    def _rotate_forward(self, X: np.ndarray) -> np.ndarray:
+        """Apply rotation to batch of vectors. Shape: (batch, d) → (batch, d)."""
+        if self.rotation_method == 'dense':
+            return (self.rotation @ X.T).T
+        elif self.rotation_method == 'wht':
+            from turboquant.rotation import apply_fast_rotation_batch
+            return apply_fast_rotation_batch(X, self.signs1, self.signs2, self.padded_d)
+        elif self.rotation_method == 'vilenkin':
+            from turboquant.vilenkin import apply_vilenkin_rotation_batch
+            return apply_vilenkin_rotation_batch(X, self.signs1, self.signs2)
+
+    def _rotate_inverse(self, Y: np.ndarray) -> np.ndarray:
+        """Apply inverse rotation. Shape: (batch, d) → (batch, d)."""
+        if self.rotation_method == 'dense':
+            return (self.rotation.T @ Y.T).T
+        elif self.rotation_method == 'wht':
+            # WHT is self-inverse: inverse = D1 @ H @ D2 (swap sign order)
+            from turboquant.rotation import apply_fast_rotation_batch
+            return apply_fast_rotation_batch(Y, self.signs2, self.signs1, self.padded_d)
+        elif self.rotation_method == 'vilenkin':
+            # VHT is self-inverse: inverse = D1 @ VHT @ D2 (swap sign order)
+            from turboquant.vilenkin import apply_vilenkin_rotation_batch
+            return apply_vilenkin_rotation_batch(Y, self.signs2, self.signs1)
 
     def quantize(self, x: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """Quantize a vector or batch of vectors.
@@ -60,7 +104,7 @@ class PolarQuant:
         x_normalized = x / safe_norms[:, np.newaxis]
 
         # Rotate normalized vectors
-        y = (self.rotation @ x_normalized.T).T
+        y = self._rotate_forward(x_normalized)
 
         # Nearest centroid per coordinate
         indices = nearest_centroid_indices(y, self.centroids)
@@ -86,7 +130,7 @@ class PolarQuant:
 
         # Look up centroids → unit-norm reconstruction
         y_hat = self.centroids[indices]
-        x_hat_unit = (self.rotation.T @ y_hat.T).T
+        x_hat_unit = self._rotate_inverse(y_hat)
 
         # Rescale by original norms
         x_hat = x_hat_unit * norms[:, np.newaxis]
